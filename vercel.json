@@ -1,36 +1,3 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/api",
-      "destination": "/api.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/[...handler].js"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/:slug*",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://harys-api-test.vercel.app"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST"
-        }
-      ]
-    }
-  ]
 }
