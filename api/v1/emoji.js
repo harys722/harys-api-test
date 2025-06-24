@@ -3,12 +3,9 @@ import emojis from '../../data/emojis';
 export default function handler(req, res) {
   const { emoji } = req.query;
 
-  // Assign the imported emojis array to allEmojis
-  const allEmojis = emojis;
-
   if (emoji) {
     // Find specific emoji
-    const found = allEmojis.find(e => e.emoji === emoji);
+    const found = emojis.find(e => e.emoji === emoji);
     if (!found) {
       return res.status(404).json({ error: "Emoji not found." });
     }
@@ -21,8 +18,8 @@ export default function handler(req, res) {
     });
   } else {
     // No param: pick a random emoji from the list
-    const randomIndex = Math.floor(Math.random() * allEmojis.length);
-    const randomEmoji = allEmojis[randomIndex];
+    const randomIndex = Math.floor(Math.random() * emojis.length);
+    const randomEmoji = emojis[randomIndex];
     return res.json({
       ...randomEmoji,
       info: {
