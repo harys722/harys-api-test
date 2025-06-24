@@ -16,7 +16,7 @@
   ],
   "headers": [
     {
-      "source": "/v1/:slug*",
+      "source": "/api/:slug*",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
