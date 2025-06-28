@@ -1,229 +1,180 @@
 export default function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: "Method Not Allowed. Only GET requests are accepted." });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const equation = req.query.equation;
+  const { equation } = req.query;
 
-  if (!equation || typeof equation !== 'string') {
-    return res.status(400).json({ error: "Missing or invalid 'equation' parameter." });
+  if (!equation) {
+    return res.status(400).json({ error: "Missing equation parameter" });
   }
 
-  // Input validation: limit length and allowed characters
-  if (equation.length > 100) {
-    return res.status(400).json({ error: "Equation is too long. Maximum length is 100 characters." });
-  }
-  if (!/^[0-9+\-*/().\s]+$/.test(equation)) {
-    return res.status(400).json({ error: "Equation contains invalid characters." });
+  if (typeof equation !== 'string' || equation.length > 200) {
+    return res.status(400).json({ error: "Invalid equation format or too long" });
   }
 
   try {
-    const result = evaluateExpression(equation);
-    if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
-      throw new Error('Result is not a valid number');
-    }
-    res.status(200).json({ equation, result });
+    const result = calculate(equation);
+    return res.status(200).json({ 
+      equation: equation.trim(),
+      result: result 
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message || "Invalid equation or error during evaluation." });
+    return res.status(400).json({ error: error.message });
   }
 }
 
-// Recursive descent parser for arithmetic expressions
-function evaluateExpression(expr) {
-  // Remove all whitespace for processing
-  const cleanedExpr = expr.replace(/\s+/g, '');
-
-  if (!cleanedExpr) {
-    throw new Error('Empty equation');
+function calculate(expression) {
+  // Clean and validate input
+  const cleaned = expression.replace(/\s+/g, '');
+  
+  if (!cleaned) {
+    throw new Error('Empty expression');
   }
 
-  // Tokenize
-  const tokens = tokenize(cleanedExpr);
-  let current = 0;
+  // Security check - only allow safe characters
+  if (!/^[0-9+\-*/().]+$/.test(cleaned)) {
+    throw new Error('Invalid characters in expression');
+  }
 
-  function tokenize(str) {
-    const tokens = [];
-    let i = 0;
+  // Convert to postfix notation and evaluate
+  return evaluatePostfix(infixToPostfix(cleaned));
+}
 
-    while (i < str.length) {
-      const ch = str[i];
-
-      if (/\d/.test(ch)) {
-        // Parse number (including decimals)
-        let numberStr = '';
-        let hasDecimal = false;
-        
-        while (i < str.length && (/\d/.test(str[i]) || (str[i] === '.' && !hasDecimal))) {
-          if (str[i] === '.') {
-            hasDecimal = true;
-          }
-          numberStr += str[i];
-          i++;
-        }
-        
-        // Don't increment i at the end of the while loop since we already did it
-        i--;
-        
-        const num = parseFloat(numberStr);
-        if (isNaN(num) || numberStr.endsWith('.')) {
-          throw new Error(`Invalid number format: ${numberStr}`);
-        }
-        tokens.push({ type: 'number', value: num });
-      } else if (ch === '-' && (i === 0 || '+-*/('.includes(str[i - 1]))) {
-        // Handle unary minus - parse the negative number
-        let numberStr = '-';
-        let hasDecimal = false;
-        i++; // Move past the minus sign
-        
-        if (i >= str.length || !/\d/.test(str[i])) {
-          throw new Error('Invalid unary minus: no number follows');
-        }
-        
-        while (i < str.length && (/\d/.test(str[i]) || (str[i] === '.' && !hasDecimal))) {
-          if (str[i] === '.') {
-            hasDecimal = true;
-          }
-          numberStr += str[i];
-          i++;
-        }
-        
-        i--; // Back up one since the outer loop will increment
-        
-        const num = parseFloat(numberStr);
-        if (isNaN(num) || numberStr.endsWith('.')) {
-          throw new Error(`Invalid number format: ${numberStr}`);
-        }
-        tokens.push({ type: 'number', value: num });
-      } else if ('+-*/()'.includes(ch)) {
-        tokens.push({ type: 'operator', value: ch });
-      } else {
-        throw new Error(`Invalid character at position ${i}: ${ch}`);
-      }
-      i++;
-    }
-
-    // Validate token sequence
-    for (let j = 0; j < tokens.length; j++) {
-      const current = tokens[j];
-      const next = tokens[j + 1];
+function infixToPostfix(infix) {
+  const output = [];
+  const operators = [];
+  const precedence = { '+': 1, '-': 1, '*': 2, '/': 2 };
+  
+  let i = 0;
+  while (i < infix.length) {
+    const char = infix[i];
+    
+    // Handle numbers (including decimals and negative numbers)
+    if (isDigit(char) || (char === '-' && isUnaryMinus(infix, i))) {
+      let number = '';
       
-      // Check for consecutive numbers without operators
-      if (current.type === 'number' && next && next.type === 'number') {
-        throw new Error('Missing operator between numbers');
+      // Handle negative sign
+      if (char === '-') {
+        number += char;
+        i++;
       }
       
-      // Check for consecutive operators (except opening parenthesis followed by operator)
-      if (current.type === 'operator' && next && next.type === 'operator') {
-        if (!(current.value === '(' || next.value === ')')) {
-          throw new Error(`Invalid operator sequence: ${current.value}${next.value}`);
-        }
+      // Read the number
+      while (i < infix.length && (isDigit(infix[i]) || infix[i] === '.')) {
+        number += infix[i];
+        i++;
       }
+      
+      // Validate the number
+      const num = parseFloat(number);
+      if (isNaN(num)) {
+        throw new Error(`Invalid number: ${number}`);
+      }
+      
+      output.push(num);
+      continue;
     }
-
-    return tokens;
+    
+    // Handle operators
+    if (precedence[char]) {
+      while (operators.length > 0 && 
+             operators[operators.length - 1] !== '(' &&
+             precedence[operators[operators.length - 1]] >= precedence[char]) {
+        output.push(operators.pop());
+      }
+      operators.push(char);
+    }
+    // Handle left parenthesis
+    else if (char === '(') {
+      operators.push(char);
+    }
+    // Handle right parenthesis
+    else if (char === ')') {
+      while (operators.length > 0 && operators[operators.length - 1] !== '(') {
+        output.push(operators.pop());
+      }
+      if (operators.length === 0) {
+        throw new Error('Mismatched parentheses');
+      }
+      operators.pop(); // Remove the '('
+    }
+    else {
+      throw new Error(`Invalid character: ${char}`);
+    }
+    
+    i++;
   }
-
-  function peek() {
-    return tokens[current] || null;
+  
+  // Pop remaining operators
+  while (operators.length > 0) {
+    const op = operators.pop();
+    if (op === '(' || op === ')') {
+      throw new Error('Mismatched parentheses');
+    }
+    output.push(op);
   }
+  
+  return output;
+}
 
-  function consume(type, value = null) {
-    const token = peek();
-    if (!token || token.type !== type || (value !== null && token.value !== value)) {
-      throw new Error(`Unexpected token at position ${current}: expected ${value || type}, got ${token ? token.value : 'EOF'}`);
-    }
-    current++;
-    return token;
-  }
-
-  // Parse expression: handles + and -
-  function parseExpression() {
-    let node = parseTerm();
-    while (peek() && peek().type === 'operator' && ['+', '-'].includes(peek().value)) {
-      const op = consume('operator').value;
-      const right = parseTerm();
-      node = { type: 'binary', operator: op, left: node, right };
-    }
-    return node;
-  }
-
-  // Parse term: handles * and /
-  function parseTerm() {
-    let node = parseFactor();
-    while (peek() && peek().type === 'operator' && ['*', '/'].includes(peek().value)) {
-      const op = consume('operator').value;
-      const right = parseFactor();
-      node = { type: 'binary', operator: op, left: node, right };
-    }
-    return node;
-  }
-
-  // Parse factor: handles numbers and parentheses
-  function parseFactor(depth = 0) {
-    if (depth > 50) {
-      throw new Error('Expression too complex: maximum nesting depth exceeded');
-    }
-
-    const token = peek();
-
-    if (!token) {
-      throw new Error('Unexpected end of expression');
-    }
-
-    if (token.type === 'operator' && token.value === '(') {
-      consume('operator', '(');
-      const node = parseExpression();
-      consume('operator', ')');
-      return node;
-    } else if (token.type === 'number') {
-      return consume('number');
+function evaluatePostfix(postfix) {
+  const stack = [];
+  
+  for (const token of postfix) {
+    if (typeof token === 'number') {
+      stack.push(token);
     } else {
-      throw new Error(`Invalid syntax at position ${current}: expected number or '(', got ${token.value}`);
-    }
-  }
-
-  // Evaluate the AST
-  function evaluateNode(node, depth = 0) {
-    if (depth > 50) {
-      throw new Error('Evaluation too complex: maximum recursion depth exceeded');
-    }
-
-    if (node.type === 'number') {
-      return node.value;
-    } else if (node.type === 'binary') {
-      const leftVal = evaluateNode(node.left, depth + 1);
-      const rightVal = evaluateNode(node.right, depth + 1);
-
-      // Ensure we're working with numbers
-      if (typeof leftVal !== 'number' || typeof rightVal !== 'number' || 
-          isNaN(leftVal) || isNaN(rightVal)) {
-        throw new Error('Invalid operand types');
+      if (stack.length < 2) {
+        throw new Error('Invalid expression structure');
       }
-
-      switch (node.operator) {
-        case '+': return leftVal + rightVal;
-        case '-': return leftVal - rightVal;
-        case '*': return leftVal * rightVal;
+      
+      const b = stack.pop();
+      const a = stack.pop();
+      
+      let result;
+      switch (token) {
+        case '+':
+          result = a + b;
+          break;
+        case '-':
+          result = a - b;
+          break;
+        case '*':
+          result = a * b;
+          break;
         case '/':
-          if (rightVal === 0) {
+          if (b === 0) {
             throw new Error('Division by zero');
           }
-          return leftVal / rightVal;
+          result = a / b;
+          break;
         default:
-          throw new Error(`Unknown operator: ${node.operator}`);
+          throw new Error(`Unknown operator: ${token}`);
       }
-    } else {
-      throw new Error(`Unknown node type: ${node.type}`);
+      
+      if (!isFinite(result)) {
+        throw new Error('Result is not a finite number');
+      }
+      
+      stack.push(result);
     }
   }
-
-  // Parse and evaluate
-  const ast = parseExpression();
-
-  // Ensure all tokens are consumed
-  if (peek()) {
-    throw new Error(`Unexpected token after expression: ${peek().value}`);
+  
+  if (stack.length !== 1) {
+    throw new Error('Invalid expression structure');
   }
+  
+  return stack[0];
+}
 
-  return evaluateNode(ast);
+function isDigit(char) {
+  return char >= '0' && char <= '9';
+}
+
+function isUnaryMinus(expression, index) {
+  // Minus is unary if it's at the start or after an operator or opening parenthesis
+  return index === 0 || 
+         expression[index - 1] === '(' || 
+         '+-*/'.includes(expression[index - 1]);
 }
