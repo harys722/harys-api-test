@@ -1,31 +1,41 @@
 export default function handler(req, res) {
   if (req.method !== 'GET') {
-    res.status(405).json({ error: "Method Not Allowed. Only GET requests are accepted." });
-    return;
+    return res.status(405).json({ error: "Method Not Allowed. Only GET requests are accepted." });
   }
 
   const equation = req.query.equation;
 
   if (!equation || typeof equation !== 'string') {
-    res.status(400).json({ error: "Missing or invalid 'equation' parameter." });
-    return;
+    return res.status(400).json({ error: "Missing or invalid 'equation' parameter." });
+  }
+
+  // Input validation: limit length and allowed characters
+  if (equation.length > 100) {
+    return res.status(400).json({ error: "Equation is too long. Maximum length is 100 characters." });
+  }
+  if (!/^[0-9+\-*/().\s]+$/.test(equation)) {
+    return res.status(400).json({ error: "Equation contains invalid characters." });
   }
 
   try {
     const result = evaluateExpression(equation);
-    if (typeof result !== 'number' || isNaN(result)) {
-      throw new Error('Result is not a number');
+    if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+      throw new Error('Result is not a valid number');
     }
-    res.json({ equation, result });
+    res.status(200).json({ equation, result });
   } catch (error) {
-    res.status(400).json({ error: "Invalid equation or error during evaluation." });
+    res.status(400).json({ error: error.message || "Invalid equation or error during evaluation." });
   }
 }
 
 // Recursive descent parser for arithmetic expressions
 function evaluateExpression(expr) {
-  // Remove whitespace for cleaner parsing
-  expr = expr.replace(/\s+/g,'+');
+  // Remove all whitespace
+  expr = expr.replace(/\s+/g, '');
+
+  if (!expr) {
+    throw new Error('Empty equation');
+  }
 
   // Tokenize
   const tokens = tokenize(expr);
@@ -34,28 +44,43 @@ function evaluateExpression(expr) {
   function tokenize(str) {
     const tokens = [];
     let numberBuffer = '';
+    let i = 0;
 
-    for (let i = 0; i < str.length; i++) {
+    while (i < str.length) {
       const ch = str[i];
 
-      if (/\d/.test(ch) || ch === '.') {
+      if (/\d|\./.test(ch)) {
+        numberBuffer += ch;
+      } else if (ch === '-' && (i === 0 || '+-*/('.includes(str[i - 1]))) {
+        // Handle unary minus
         numberBuffer += ch;
       } else {
         if (numberBuffer) {
-          tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
-          numberBuffer = expr;
+          const num = parseFloat(numberBuffer);
+          if (isNaN(num)) {
+            throw new Error(`Invalid number format at position ${i - numberBuffer.length}`);
+          }
+          tokens.push({ type: 'number', value: num });
+          numberBuffer = '';
         }
 
         if ('+-*/()'.includes(ch)) {
           tokens.push({ type: 'operator', value: ch });
-        } else {
-          throw new Error('Invalid character: ' + ch);
+        } else if (ch !== ' ') {
+          throw new Error(`Invalid character at position ${i}: ${ch}`);
         }
       }
+      i++;
     }
+
     if (numberBuffer) {
-      tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
+      const num = parseFloat(numberBuffer);
+      if (isNaN(num)) {
+        throw new Error(`Invalid number format at end of expression`);
+      }
+      tokens.push({ type: 'number', value: num });
     }
+
     return tokens;
   }
 
@@ -64,37 +89,47 @@ function evaluateExpression(expr) {
   }
 
   function consume(type, value = null) {
-    const token = tokens[current];
+    const token = peek();
     if (!token || token.type !== type || (value !== null && token.value !== value)) {
-      throw new Error('Unexpected token');
+      throw new Error(`Unexpected token at position ${current}: expected ${value || type}, got ${token ? token.value : 'EOF'}`);
     }
     current++;
     return token;
   }
 
-  // Parse expression with correct precedence: expression -> term -> factor
+  // Parse expression: handles + and -
   function parseExpression() {
     let node = parseTerm();
-    while (peek() && peek().type === 'operator' && (peek().value === '+' || peek().value === '-')) {
+    while (peek() && peek().type === 'operator' && ['+', '-'].includes(peek().value)) {
       const op = consume('operator').value;
       const right = parseTerm();
-      node = { type: 'binary', operator: op, left: node, right: right };
+      node = { type: 'binary', operator: op, left: node, right };
     }
     return node;
   }
 
+  // Parse term: handles * and /
   function parseTerm() {
     let node = parseFactor();
-    while (peek() && peek().type === 'operator' && (peek().value === '*' || peek().value === '/')) {
+    while (peek() && peek().type === 'operator' && ['*', '/'].includes(peek().value)) {
       const op = consume('operator').value;
       const right = parseFactor();
-      node = { type: 'binary', operator: op, left: node, right: right };
+      node = { type: 'binary', operator: op, left: node, right };
     }
     return node;
   }
 
-  function parseFactor() {
+  // Parse factor: handles numbers and parentheses
+  function parseFactor(depth = 0) {
+    if (depth > 50) {
+      throw new Error('Expression too complex: maximum nesting depth exceeded');
+    }
+
     const token = peek();
+
+    if (!token) {
+      throw new Error('Unexpected end of expression');
+    }
 
     if (token.type === 'operator' && token.value === '(') {
       consume('operator', '(');
@@ -102,29 +137,50 @@ function evaluateExpression(expr) {
       consume('operator', ')');
       return node;
     } else if (token.type === 'number') {
-      consume('number');
-      return { type: 'number', value: token.value };
+      return consume('number');
     } else {
-      throw new Error('Invalid syntax');
+      throw new Error(`Invalid syntax at position ${current}: expected number or '(', got ${token.value}`);
     }
   }
 
-  function evaluateNode(node) {
+  // Evaluate the AST
+  function evaluateNode(node, depth = 0) {
+    if (depth > 50) {
+      throw new Error('Evaluation too complex: maximum recursion depth exceeded');
+    }
+
     if (node.type === 'number') {
       return node.value;
     } else if (node.type === 'binary') {
-      const leftVal = evaluateNode(node.left);
-      const rightVal = evaluateNode(node.right);
+      const leftVal = evaluateNode(node.left, depth + 1);
+      const rightVal = evaluateNode(node.right, depth + 1);
+
+      if (typeof leftVal !== 'number' || typeof rightVal !== 'number') {
+        throw new Error('Invalid operand types');
+      }
+
       switch (node.operator) {
         case '+': return leftVal + rightVal;
         case '-': return leftVal - rightVal;
         case '*': return leftVal * rightVal;
-        case '/': return leftVal / rightVal;
-        default: throw new Error('Unknown operator');
+        case '/':
+          if (rightVal === 0) {
+            throw new Error('Division by zero');
+          }
+          return leftVal / rightVal;
+        default:
+          throw new Error(`Unknown operator: ${node.operator}`);
       }
     }
   }
 
+  // Parse and evaluate
   const ast = parseExpression();
+
+  // Ensure all tokens are consumed
+  if (peek()) {
+    throw new Error(`Unexpected token after expression: ${peek().value}`);
+  }
+
   return evaluateNode(ast);
 }
