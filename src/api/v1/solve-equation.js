@@ -1,52 +1,44 @@
-export default function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: "Method Not Allowed. This endpoint only accepts GET requests." });
-    return;
-  }
+// Your calculator endpoint code
+async function handleRequest(request) {
+  const url = new URL(request.url);
+  const expression = url.searchParams.get('equation');
 
-  const equation = req.query.equation;
-
-  if (!equation || typeof equation !== 'string') {
-    res.status(400).json({ error: "Missing or invalid 'equation' parameter." });
-    return;
+  if (!expression) {
+    return new Response('No equation provided', { status: 400 });
   }
 
   try {
-    const result = evaluateExpression(equation);
-    if (typeof result !== 'number' || isNaN(result)) {
-      throw new Error('Result is not a number');
-    }
-    res.json({ equation, result });
-  } catch (error) {
-    res.status(400).json({ error: "Invalid equation or error during evaluation." });
+    const tokens = tokenize(expression);
+    const ast = parseExpression(tokens);
+    const result = evaluateNode(ast);
+    return new Response(result.toString());
+  } catch (err) {
+    return new Response('Error: ' + err.message, { status: 400 });
   }
 }
 
-// Recursive descent parser and evaluator for arithmetic expressions with parentheses
-function evaluateExpression(expr) {
-  // Remove whitespace
-  expr = expr.replace(/\s+/g, '');
-  
-  // Tokenize the expression
-  const tokens = tokenize(expr);
-  let current = 0;
-
-  function tokenize(str) {
+// Tokenizer: converts input string to tokens
+function tokenize(str) {
   const tokens = [];
   let numberBuffer = '';
 
   for (let char of str) {
     if (/\d/.test(char) || char === '.') {
+      // Build number buffer for digits and decimal point
       numberBuffer += char;
     } else {
       if (numberBuffer) {
+        // Push number token
         tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
         numberBuffer = '';
       }
-      if ('+-*/()'.includes(char)) {
+      if (char === '+' || char === '-' || char === '*' || char === '/' || char === '(' || char === ')') {
         tokens.push({ type: 'operator', value: char });
+      } else if (char.trim() === '') {
+        // skip whitespace
+        continue;
       } else {
-        throw new Error('Invalid character');
+        throw new Error(`Invalid character: ${char}`);
       }
     }
   }
@@ -56,57 +48,94 @@ function evaluateExpression(expr) {
   return tokens;
 }
 
+// Recursive descent parser
+function parseExpression(tokens) {
+  let position = 0;
+
   function peek() {
-    return tokens[current] || null;
+    return tokens[position] || null;
   }
 
   function consume(type, value = null) {
-    const token = tokens[current];
+    const token = tokens[position];
     if (!token || token.type !== type || (value !== null && token.value !== value)) {
-      throw new Error('Unexpected token');
+      throw new Error(`Unexpected token: ${token ? token.value : 'EOF'}`);
     }
-    current++;
+    position++;
     return token;
   }
 
-  function parseExpression() {
-    let node = parseTerm();
-    while (peek() && peek().type === 'operator' && (peek().value === '+' || peek().value === '-')) {
-      const op = consume('operator').value;
-      const right = parseTerm();
-      node = { type: 'binary', operator: op, left: node, right: right };
-    }
-    return node;
-  }
-
-  function parseTerm() {
-    let node = parseFactor();
-    while (peek() && peek().type === 'operator' && (peek().value === '*' || peek().value === '/')) {
-      const op = consume('operator').value;
-      const right = parseFactor();
-      node = { type: 'binary', operator: op, left: node, right: right };
-    }
-    return node;
-  }
-
+  // Parse factors (numbers, parentheses)
   function parseFactor() {
     const token = peek();
-    if (token.type === 'operator' && token.value === '(') {
-      consume('operator', '(');
-      const node = parseExpression();
-      consume('operator', ')');
-      return node;
-    } else if (token.type === 'number') {
+    if (!token) throw new Error('Unexpected end of input');
+
+    if (token.type === 'operator' && token.value === '-') {
+      consume('operator', '-');
+      const factor = parseFactor();
+      return { type: 'binary', operator: '-', left: { type: 'number', value: 0 }, right: factor };
+    }
+
+    if (token.type === 'number') {
       consume('number');
       return { type: 'number', value: token.value };
-    } else {
-      throw new Error('Invalid syntax');
     }
+
+    if (token.type === 'operator' && token.value === '(') {
+      consume('operator', '(');
+      const expr = parseExpressionRecursive();
+      if (peek() && peek().type === 'operator' && peek().value === ')') {
+        consume('operator', ')');
+        return expr;
+      } else {
+        throw new Error('Expected closing parenthesis');
+      }
+    }
+
+    throw new Error(`Unexpected token: ${token.value}`);
   }
 
-  function evaluateNode(node) {
+  // Parse terms (multiplication/division)
+  function parseTerm() {
+    let node = parseFactor();
+
+    while (true) {
+      const token = peek();
+      if (token && token.type === 'operator' && (token.value === '*' || token.value === '/')) {
+        consume('operator');
+        const right = parseFactor();
+        node = { type: 'binary', operator: token.value, left: node, right: right };
+      } else {
+        break;
+      }
+    }
+    return node;
+  }
+
+  // Parse expressions (addition/subtraction)
+  function parseExpressionRecursive() {
+    let node = parseTerm();
+
+    while (true) {
+      const token = peek();
+      if (token && token.type === 'operator' && (token.value === '+' || token.value === '-')) {
+        consume('operator');
+        const right = parseTerm();
+        node = { type: 'binary', operator: token.value, left: node, right: right };
+      } else {
+        break;
+      }
+    }
+    return node;
+  }
+
+  return parseExpressionRecursive();
+}
+
+// Evaluator: computes the value of the AST
+function evaluateNode(node) {
   if (node.type === 'number') {
-    return node.value; // node.value should already be a number (float)
+    return node.value;
   } else if (node.type === 'binary') {
     const leftVal = evaluateNode(node.left);
     const rightVal = evaluateNode(node.right);
@@ -119,13 +148,10 @@ function evaluateExpression(expr) {
           throw new Error('Division by zero');
         }
         return leftVal / rightVal;
-      default: throw new Error('Unknown operator');
+      default:
+        throw new Error('Unknown operator');
     }
   } else {
     throw new Error('Invalid node type');
   }
-}
-
-  const ast = parseExpression();
-  return evaluateNode(ast);
 }
