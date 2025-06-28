@@ -30,15 +30,15 @@ export default function handler(req, res) {
 
 // Recursive descent parser for arithmetic expressions
 function evaluateExpression(expr) {
-  // Remove all whitespace
-  expr = expr.replace(/\s+/g, '+');
+  // Remove all whitespace for processing, but validate operators later
+  const cleanedExpr = expr.replace(/\s+/g, '');
 
-  if (!expr) {
+  if (!cleanedExpr) {
     throw new Error('Empty equation');
   }
 
   // Tokenize
-  const tokens = tokenize(expr);
+  const tokens = tokenize(cleanedExpr);
   let current = 0;
 
   function tokenize(str) {
@@ -66,7 +66,7 @@ function evaluateExpression(expr) {
 
         if ('+-*/()'.includes(ch)) {
           tokens.push({ type: 'operator', value: ch });
-        } else if (ch !== ' ') {
+        } else {
           throw new Error(`Invalid character at position ${i}: ${ch}`);
         }
       }
@@ -79,6 +79,13 @@ function evaluateExpression(expr) {
         throw new Error(`Invalid number format at end of expression`);
       }
       tokens.push({ type: 'number', value: num });
+    }
+
+    // Validate that numbers are separated by operators
+    for (let j = 1; j < tokens.length; j++) {
+      if (tokens[j].type === 'number' && tokens[j - 1].type === 'number') {
+        throw new Error('Missing operator between numbers');
+      }
     }
 
     return tokens;
@@ -174,9 +181,6 @@ function evaluateExpression(expr) {
     }
   }
 
-  // Debug: Log tokens for verification
-  console.log('Tokens:', tokens);
-
   // Parse and evaluate
   const ast = parseExpression();
 
@@ -185,8 +189,5 @@ function evaluateExpression(expr) {
     throw new Error(`Unexpected token after expression: ${peek().value}`);
   }
 
-  const result = evaluateNode(ast);
-  console.log('AST:', ast, 'Result:', result);
-
-  return result;
+  return evaluateNode(ast);
 }
