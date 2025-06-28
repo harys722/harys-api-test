@@ -31,7 +31,7 @@ export default function handler(req, res) {
 // Recursive descent parser for arithmetic expressions
 function evaluateExpression(expr) {
   // Remove all whitespace
-  expr = expr.replace(/\s+/g, '');
+  expr = expr.replace(/\s+/g, '+');
 
   if (!expr) {
     throw new Error('Empty equation');
