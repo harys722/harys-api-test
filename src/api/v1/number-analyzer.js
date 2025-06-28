@@ -7,89 +7,89 @@ const isPrime = (num) => {
   return true;
 };
 
-const isFibonacci = (num) => {
-  // A number is Fibonacci if one of (5*n^2 + 4) or (5*n^2 - 4) is a perfect square
-  const test1 = 5 * num * num + 4;
-  const test2 = 5 * num * num - 4;
-  return isPerfectSquare(test1) || isPerfectSquare(test2);
-};
-
 const isPerfectSquare = (num) => {
-  const sqrt = Math.sqrt(num);
-  return sqrt === Math.floor(sqrt);
+  const sqrtNum = Math.sqrt(num);
+  return Number.isInteger(sqrtNum);
 };
 
 const isArmstrong = (num) => {
-  const strNum = num.toString();
-  const numDigits = strNum.length;
+  const numStr = String(num);
+  const numDigits = numStr.length;
   let sum = 0;
-  for (let digit of strNum) {
+  for (let digit of numStr) {
     sum += Math.pow(parseInt(digit), numDigits);
   }
   return sum === num;
 };
 
 const isPalindrome = (num) => {
-  const str = num.toString();
-  return str === str.split('').reverse().join('');
+  const numStr = String(num);
+  return numStr === numStr.split("").reverse().join("");
 };
 
-// Main handler
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.status(405).send("Method Not Allowed, this endpoint only uses 'GET' requests.");
-    return;
+
+const analyzeNumber = (num) => {
+  if (typeof num !== 'number' || !Number.isFinite(num)) {
+    return { error: "Invalid input. Please provide a valid number." };
   }
-
-  const { number } = req.query;
-
-  if (typeof number !== 'number') {
-    res.status(400).send("Please provide a 'number' in the url parameters.");
-    return;
-  }
-
-  const absoluteValue = Math.abs(number);
-  const isNegative = number < 0;
-  const isGreaterThanZero = number > 0;
-  const isEven = number % 2 === 0;
+  const formatted1 = num.toLocaleString('en-US');
+  const formatted2 = num.toLocaleString('en-GB');
+  const abbreviated = num.toLocaleString('en-US', { notation: 'compact' });
+  const isEven = num % 2 === 0;
   const isOdd = !isEven;
-  const isPrimeNum = isPrime(number);
-  const isFib = isFibonacci(number);
-  const isSquare = isPerfectSquare(number);
-  const isArm = isArmstrong(number);
-  const isPalin = isPalindrome(number);
-  const isDiv3 = number % 3 === 0;
-
-  // Formatting
-  const formatted1 = number.toLocaleString('en-US'); // 300,000
-  const formatted2 = number.toLocaleString('de-DE'); // 300.000
-  const abbrev = (() => {
-    if (Math.abs(number) >= 1_000_000_000) {
-      return (number / 1_000_000_000).toFixed(1) + 'B';
-    } else if (Math.abs(number) >= 1_000_000) {
-      return (number / 1_000_000).toFixed(1) + 'M';
-    } else if (Math.abs(number) >= 1_000) {
-      return (number / 1_000).toFixed(1) + 'K';
-    }
-    return number.toString();
-  })();
-
-  res.json({
+  const result = {
     formatted1,
     formatted2,
-    abbreviated: abbrev,
-    integer: number,
+    abbreviated,
+    integer: num,
     isEven,
     isOdd,
-    isPrime: isPrimeNum,
-    isFibonacci: isFib,
-    isPerfectSquare: isSquare,
-    isArmstrong: isArm,
-    isPalindrome: isPalin,
-    isDivisibleBy3: isDiv3,
-    numberType: Number.isInteger(number) ? 'integer' : 'float',
-    isGreaterThanZero,
-    isNegative,
-    absoluteValue: absoluteValue
-  });
+    isPrime: isPrime(num),
+    isFibonacci: isFibonacci(num),
+    isPerfectSquare: isPerfectSquare(num),
+    isArmstrong: isArmstrong(num),
+    isPalindrome: isPalindrome(num),
+    isDivisibleBy3: num % 3 === 0,
+    numberType: "integer",
+    isGreaterThanZero: num > 0,
+    isNegative: num < 0,
+    absoluteValue: Math.abs(num)
+  };
+
+   if (isNaN(result.isFibonacci)) {
+    result.isFibonacci = false;
+  }
+
+  return result;
+};
+
+
+
+function handleRequest(urlParams) {
+    let num;
+    if (urlParams && urlParams.number) {
+      num = parseInt(urlParams.number);
+    } else {
+      num = Math.floor(Math.random() * 100000); // Generate random number
+    }
+
+    const analysisResult = analyzeNumber(num);
+
+    if (analysisResult.error) {
+      return analysisResult;
+    } else {
+      return analysisResult;
+    }
 }
+
+
+const urlParams = {
+  number: '300000'
+};
+
+const result = handleRequest(urlParams);
+console.log(JSON.stringify(result, null, 2)); 
+
+// Example with random number:
+const randomResult = handleRequest({});
+console.log(JSON.stringify(randomResult, null, 2)); 
