@@ -1,4 +1,4 @@
-// Utility functions
+// Utility functions (unchanged)
 const isPrime = (num) => {
   if (num < 2) return false;
   for (let i = 2; i <= Math.sqrt(num); i++) {
@@ -7,78 +7,96 @@ const isPrime = (num) => {
   return true;
 };
 
+const isFibonacci = (num) => {
+  const test1 = 5 * num * num + 4;
+  const test2 = 5 * num * num - 4;
+  return isPerfectSquare(test1) || isPerfectSquare(test2);
+};
+
 const isPerfectSquare = (num) => {
-  const sqrtNum = Math.sqrt(num);
-  return Number.isInteger(sqrtNum);
+  const sqrt = Math.sqrt(num);
+  return sqrt === Math.floor(sqrt);
 };
 
 const isArmstrong = (num) => {
-  const numStr = String(num);
-  const numDigits = numStr.length;
+  const strNum = num.toString();
+  const numDigits = strNum.length;
   let sum = 0;
-  for (let digit of numStr) {
+  for (let digit of strNum) {
     sum += Math.pow(parseInt(digit), numDigits);
   }
   return sum === num;
 };
 
 const isPalindrome = (num) => {
-  const numStr = String(num);
-  return numStr === numStr.split("").reverse().join("");
+  const str = num.toString();
+  return str === str.split('').reverse().join('');
 };
 
-
-const analyzeNumber = (num) => {
-  if (typeof num !== 'number' || !Number.isFinite(num)) {
-    return { error: "Invalid input: Please provide a valid number." }; // Crucial error handling
+// Main handler
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.status(405).send("Method Not Allowed, this endpoint only uses 'GET' requests.");
+    return;
   }
 
-  const results = {
-    originalNumber: num,
-    isPrime: isPrime(num),
-    isPerfectSquare: isPerfectSquare(num),
-    isArmstrong: isArmstrong(num),
-    isPalindrome: isPalindrome(num),
-  };
+  let numberParam = req.query.number;
+  let number;
 
-  return results;
-};
-
-
-// Example usage (assuming you have a way to get the URL parameter)
-function handleRequest(req) {
-  let num;
-
-  try {
-    // Attempt to get the number from the URL parameters (replace with your actual URL parameter extraction)
-    const urlParams = new URLSearchParams(req); // or similar way to get url parameters
-    num = parseInt(urlParams.get('number'), 10);
-
-    if (isNaN(num)) {
-      // If no number is provided, generate a random one
-      num = Math.floor(Math.random() * 100) + 1; // Generates a random number between 1 and 100
+  if (numberParam === undefined) {
+    // No parameter provided, generate a random number between -1,000,000 and 1,000,000
+    number = Math.floor(Math.random() * 2_000_001) - 1_000_000; // Range: -1,000,000 to 1,000,000
+  } else {
+    // Convert string to number
+    number = parseFloat(numberParam);
+    if (isNaN(number)) {
+      res.status(400).send("Invalid number provided.");
+      return;
     }
-    
-  } catch (error) {
-      return { error: "Invalid URL parameters or unexpected error: " + error.message };
   }
 
-  try {
-    const analysis = analyzeNumber(num);
-    if(analysis.error){
-        return analysis;
+  const absoluteValue = Math.abs(number);
+  const isNegative = number < 0;
+  const isGreaterThanZero = number > 0;
+  const isEven = number % 2 === 0;
+  const isOdd = !isEven;
+  const isPrimeNum = isPrime(number);
+  const isFib = isFibonacci(number);
+  const isSquare = isPerfectSquare(number);
+  const isArm = isArmstrong(number);
+  const isPalin = isPalindrome(number);
+  const isDiv3 = number % 3 === 0;
+
+  // Formatting
+  const formatted1 = number.toLocaleString('en-US'); // e.g., 300,000
+  const formatted2 = number.toLocaleString('de-DE'); // e.g., 300.000
+  const abbrev = (() => {
+    if (Math.abs(number) >= 1_000_000_000) {
+      return (number / 1_000_000_000).toFixed(1) + 'B';
+    } else if (Math.abs(number) >= 1_000_000) {
+      return (number / 1_000_000).toFixed(1) + 'M';
+    } else if (Math.abs(number) >= 1_000) {
+      return (number / 1_000).toFixed(1) + 'K';
     }
-    return analysis;
-  } catch (error) {
-    return { error: "An error occurred during analysis: " + error.message };
-  }
+    return number.toString();
+  })();
+
+  res.json({
+    formatted1,
+    formatted2,
+    abbreviated: abbrev,
+    integer: number,
+    isEven,
+    isOdd,
+    isPrime: isPrimeNum,
+    isFibonacci: isFib,
+    isPerfectSquare: isSquare,
+    isArmstrong: isArm,
+    isPalindrome: isPalin,
+    isDivisibleBy3: isDiv3,
+    numberType: Number.isInteger(number) ? 'integer' : 'float',
+    isGreaterThanZero,
+    isNegative,
+    absoluteValue: absoluteValue
+  });
 }
-
-// Example usage (replace with your actual request handling)
-const requestData = {
-  url: "?number=121", // Example URL with parameter
-};
-
-const response = handleRequest(requestData);
-
-console.log(JSON.stringify(response, null, 2));
