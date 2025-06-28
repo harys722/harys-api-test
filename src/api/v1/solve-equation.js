@@ -25,7 +25,7 @@ export default function handler(req, res) {
 // Recursive descent parser for arithmetic expressions
 function evaluateExpression(expr) {
   // Remove whitespace
-  expr = expr.replace(/\s+/g, '');
+  expr = expr.replace(/\s+/g, '+');
 
   // Tokenize
   const tokens = tokenize(expr);
