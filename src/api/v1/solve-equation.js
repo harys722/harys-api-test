@@ -1,6 +1,6 @@
 export default function handler(req, res) {
   if (req.method !== 'GET') {
-    res.status(405).json({ error: "Method Not Allowed. This endpoint only accepts GET requests." });
+    res.status(405).json({ error: "Method Not Allowed. Only GET requests are accepted." });
     return;
   }
 
@@ -22,12 +22,12 @@ export default function handler(req, res) {
   }
 }
 
-// Recursive descent parser and evaluator for arithmetic expressions with parentheses
+// Recursive descent parser for arithmetic expressions
 function evaluateExpression(expr) {
   // Remove whitespace
   expr = expr.replace(/\s+/g, '');
-  
-  // Tokenize the expression
+
+  // Tokenize
   const tokens = tokenize(expr);
   let current = 0;
 
@@ -36,20 +36,20 @@ function evaluateExpression(expr) {
     let numberBuffer = '';
 
     for (let i = 0; i < str.length; i++) {
-      const char = str[i];
+      const ch = str[i];
 
-      if (/\d/.test(char) || char === '.') {
-        // Build number including decimals
-        numberBuffer += char;
+      if (/\d/.test(ch) || ch === '.') {
+        numberBuffer += ch;
       } else {
         if (numberBuffer) {
           tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
           numberBuffer = '';
         }
-        if ('+-*/()'.includes(char)) {
-          tokens.push({ type: 'operator', value: char });
+
+        if ('+-*/()'.includes(ch)) {
+          tokens.push({ type: 'operator', value: ch });
         } else {
-          throw new Error('Invalid character: ' + char);
+          throw new Error('Invalid character: ' + ch);
         }
       }
     }
@@ -72,6 +72,7 @@ function evaluateExpression(expr) {
     return token;
   }
 
+  // Parse expression with correct precedence: expression -> term -> factor
   function parseExpression() {
     let node = parseTerm();
     while (peek() && peek().type === 'operator' && (peek().value === '+' || peek().value === '-')) {
