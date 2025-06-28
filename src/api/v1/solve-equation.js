@@ -1,6 +1,3 @@
-const http = require('http');
-const url = require('url');
-
 // Safe math evaluation function
 function evaluateExpression(expression) {
     try {
@@ -13,7 +10,6 @@ function evaluateExpression(expression) {
         }
         
         // Prevent potential security issues by using Function constructor
-        // This is safer than eval() but still allows basic math
         const result = Function('"use strict"; return (' + cleanExpression + ')')();
         
         // Check if result is a valid number
@@ -27,12 +23,8 @@ function evaluateExpression(expression) {
     }
 }
 
-// Create HTTP server
-const server = http.createServer((req, res) => {
-    // Parse URL and query parameters
-    const parsedUrl = url.parse(req.url, true);
-    const { equation } = parsedUrl.query;
-    
+// Vercel serverless function handler
+export default function handler(req, res) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
@@ -40,19 +32,18 @@ const server = http.createServer((req, res) => {
     
     // Handle only GET requests
     if (req.method !== 'GET') {
-        res.statusCode = 405;
-        res.end(JSON.stringify({ error: 'Method not allowed' }));
-        return;
+        return res.status(405).json({ error: 'Method not allowed' });
     }
+    
+    // Get equation from query parameters
+    const { equation } = req.query;
     
     // Check if equation parameter exists
     if (!equation) {
-        res.statusCode = 400;
-        res.end(JSON.stringify({ 
+        return res.status(400).json({ 
             error: 'Missing equation parameter',
-            usage: 'Example: /calculator?equation=2+2*3'
-        }));
-        return;
+            usage: 'Example: /api/calculator?equation=2+2*3'
+        });
     }
     
     try {
@@ -60,20 +51,18 @@ const server = http.createServer((req, res) => {
         const result = evaluateExpression(equation);
         
         // Return successful response
-        res.statusCode = 200;
-        res.end(JSON.stringify({
+        return res.status(200).json({
             equation: equation,
             result: result,
             success: true
-        }));
+        });
         
     } catch (error) {
         // Return error response
-        res.statusCode = 400;
-        res.end(JSON.stringify({
+        return res.status(400).json({
             error: error.message,
             equation: equation,
             success: false
-        }));
+        });
     }
-});
+}
