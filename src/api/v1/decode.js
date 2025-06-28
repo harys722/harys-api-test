@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const decodedContent = Buffer.from(string, 'base64').toString('utf-8');
     res.json({
       base64: {
-        encoded: string,
+        string: string,
         decoded: decodedContent
       },
       info: {
