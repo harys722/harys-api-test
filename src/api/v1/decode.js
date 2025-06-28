@@ -4,21 +4,23 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { content } = req.body;
+  const { string } = req.body;
 
-  if (!content) {
-    res.status(400).send("Missing 'content' in request body");
+  if (!string) {
+    res.status(400).send("Missing 'string' in request body");
     return;
   }
 
   try {
-    const decodedContent = Buffer.from(content, 'base64').toString('utf-8');
+    const decodedContent = Buffer.from(string, 'base64').toString('utf-8');
     res.json({
       decoded: decodedContent,
-      credits: 'Made by harys722, available only for cool people.',
-      website: 'https://harys.is-a.dev/'
+      info: {
+      credits: "Made by harys722, available only for cool people.",
+      website: "https://harys.is-a.dev"
+      }
     });
   } catch (error) {
-    res.status(500).send('Error decoding content');
+    res.status(500).send("Error decoding string, please try again!");
   }
 }
