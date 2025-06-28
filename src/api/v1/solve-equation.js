@@ -35,14 +35,19 @@ export default function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
     
-    // Get equation from query parameters
-    const { equation } = req.query;
+    // Get equation from query parameters and decode URL encoding
+    let { equation } = req.query;
+    
+    // Fix URL encoding issue where + becomes space
+    if (equation) {
+        equation = equation.replace(/\s+/g, '+');
+    }
     
     // Check if equation parameter exists
     if (!equation) {
         return res.status(400).json({ 
             error: 'Missing equation parameter',
-            usage: 'Example: /api/calculator?equation=2+2*3'
+            usage: 'Example: /v1/solve-equation?equation=2+2*3'
         });
     }
     
