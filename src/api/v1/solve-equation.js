@@ -22,16 +22,31 @@ export default function handler(req, res) {
   }
 }
 
-// Helper function outside the handler
 function safeEval(expr) {
   // Remove whitespace
   expr = expr.replace(/\s+/g, '');
 
-  // Validate the expression: only digits, operators, parentheses
+  // Validate allowed characters
   if (!/^[0-9+\-*/().]+$/.test(expr)) {
     throw new Error('Invalid characters in expression');
   }
 
-  // Evaluate safely using Function constructor with strict mode
+  // Check for balanced parentheses
+  let stack = [];
+  for (let char of expr) {
+    if (char === '(') {
+      stack.push(char);
+    } else if (char === ')') {
+      if (stack.length === 0) {
+        throw new Error('Unbalanced parentheses');
+      }
+      stack.pop();
+    }
+  }
+  if (stack.length !== 0) {
+    throw new Error('Unbalanced parentheses');
+  }
+
+  // Evaluate safely
   return Function(`'use strict'; return (${expr})`)();
 }
