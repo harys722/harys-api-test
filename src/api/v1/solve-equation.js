@@ -1,12 +1,11 @@
 function evaluateExpression(expr) {
   expr = expr.replace(/\s+/g, '');
 
-  if (!/^[0-9+\-*/().^a-zA-Z]+$/.test(expr)) {
-    throw new Error('Invalid characters in expression');
-  }
-
+  // Tokenize
   const tokens = tokenize(expr);
+  // Convert to RPN
   const rpn = toRPN(tokens);
+  // Evaluate RPN
   const result = evaluateRPN(rpn);
   return result;
 }
@@ -28,13 +27,6 @@ function tokenize(expr) {
     } else if (/[+\-*/^()]/.test(char)) {
       tokens.push({ type: 'operator', value: char });
       i++;
-    } else if (/[a-zA-Z]/.test(char)) {
-      let funcName = '';
-      while (i < expr.length && /[a-zA-Z]/.test(expr[i])) {
-        funcName += expr[i];
-        i++;
-      }
-      tokens.push({ type: 'func', value: funcName });
     } else {
       throw new Error(`Unexpected character: ${char}`);
     }
@@ -54,11 +46,9 @@ function toRPN(tokens) {
   };
   const rightAssociative = { '^': true };
 
-  for (let token of tokens) {
+  for (const token of tokens) {
     if (token.type === 'number') {
       output.push(token);
-    } else if (token.type === 'func') {
-      operators.push(token);
     } else if (token.type === 'operator') {
       if (token.value === '(') {
         operators.push(token);
@@ -76,21 +66,14 @@ function toRPN(tokens) {
           throw new Error('Mismatched parentheses');
         }
         operators.pop(); // Remove '('
-        // If function on top, pop it
-        if (
-          operators.length &&
-          operators[operators.length - 1].type === 'func'
-        ) {
-          output.push(operators.pop());
-        }
       } else {
         while (
           operators.length &&
-          ((precedence[operators[operators.length - 1].value] || 0) >
-            precedence[token.value] ||
-            (precedence[operators[operators.length - 1].value] ===
-              precedence[token.value] &&
-              !rightAssociative[token.value])) &&
+          ((precedence[operators[operators.length - 1].value] || 0) > precedence[token.value]) ||
+          (
+            precedence[operators[operators.length - 1].value] === precedence[token.value] &&
+            !rightAssociative[token.value]
+          ) &&
           operators[operators.length - 1].value !== '('
         ) {
           output.push(operators.pop());
@@ -113,16 +96,7 @@ function toRPN(tokens) {
 
 function evaluateRPN(rpn) {
   const stack = [];
-  const functions = {
-    sin: Math.sin,
-    cos: Math.cos,
-    tan: Math.tan,
-    log: Math.log,
-    sqrt: Math.sqrt,
-    abs: Math.abs,
-  };
-
-  for (let token of rpn) {
+  for (const token of rpn) {
     if (token.type === 'number') {
       stack.push(token.value);
     } else if (token.type === 'operator') {
@@ -148,15 +122,10 @@ function evaluateRPN(rpn) {
         default:
           throw new Error(`Unknown operator: ${token.value}`);
       }
-    } else if (token.type === 'func') {
-      if (stack.length < 1) throw new Error('Invalid function call');
-      const arg = stack.pop();
-      const func = functions[token.value.toLowerCase()];
-      if (!func) throw new Error(`Unknown function: ${token.value}`);
-      stack.push(func(arg));
+    } else {
+      throw new Error(`Unknown token type: ${token.type}`);
     }
   }
-
   if (stack.length !== 1) throw new Error('Invalid expression');
   return stack[0];
 }
