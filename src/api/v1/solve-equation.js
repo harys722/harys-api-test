@@ -43,7 +43,7 @@ function evaluateExpression(expr) {
       } else {
         if (numberBuffer) {
           tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
-          numberBuffer = '';
+          numberBuffer = expr;
         }
 
         if ('+-*/()'.includes(ch)) {
