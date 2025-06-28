@@ -11,13 +11,23 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Validate if the input is a valid base64 string
+  const base64Regex = /^[a-zA-Z0-9+/=]*={0,2}$/;
+  if (!base64Regex.test(string)) {
+    res.status(400).send('Invalid base64 string');
+    return;
+  }
+
   try {
     const decodedContent = Buffer.from(string, 'base64').toString('utf-8');
     res.json({
-      decoded: decodedContent,
+      base64: {
+        encoded: string,
+        decoded: decodedContent
+      },
       info: {
-      credits: "Made by harys722, available only for cool people.",
-      website: "https://harys.is-a.dev"
+        credits: "Made by harys722, available only for cool people.",
+        website: "https://harys.is-a.dev"
       }
     });
   } catch (error) {
