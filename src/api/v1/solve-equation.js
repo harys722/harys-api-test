@@ -1,21 +1,16 @@
-// Main evaluate function
 function evaluateExpression(expr) {
-  // Remove whitespace
   expr = expr.replace(/\s+/g, '');
 
-  // Validate characters
   if (!/^[0-9+\-*/().^a-zA-Z]+$/.test(expr)) {
     throw new Error('Invalid characters in expression');
   }
 
-  // Parse and evaluate
   const tokens = tokenize(expr);
   const rpn = toRPN(tokens);
   const result = evaluateRPN(rpn);
   return result;
 }
 
-// Tokenizer: Splits expression into tokens
 function tokenize(expr) {
   const tokens = [];
   let i = 0;
@@ -23,25 +18,23 @@ function tokenize(expr) {
     const char = expr[i];
 
     if (/\d/.test(char) || (char === '.' && /\d/.test(expr[i + 1]))) {
-      // Number (integer or float)
-      let num = char;
+      let numStr = char;
       i++;
       while (i < expr.length && (/[\d.]/.test(expr[i]))) {
-        num += expr[i];
+        numStr += expr[i];
         i++;
       }
-      tokens.push({ type: 'number', value: parseFloat(num) });
+      tokens.push({ type: 'number', value: parseFloat(numStr) });
     } else if (/[+\-*/^()]/.test(char)) {
       tokens.push({ type: 'operator', value: char });
       i++;
     } else if (/[a-zA-Z]/.test(char)) {
-      // Function name
-      let func = '';
+      let funcName = '';
       while (i < expr.length && /[a-zA-Z]/.test(expr[i])) {
-        func += expr[i];
+        funcName += expr[i];
         i++;
       }
-      tokens.push({ type: 'func', value: func });
+      tokens.push({ type: 'func', value: funcName });
     } else {
       throw new Error(`Unexpected character: ${char}`);
     }
@@ -49,7 +42,6 @@ function tokenize(expr) {
   return tokens;
 }
 
-// Convert tokens to Reverse Polish Notation (Shunting-Yard)
 function toRPN(tokens) {
   const output = [];
   const operators = [];
@@ -78,13 +70,13 @@ function toRPN(tokens) {
           output.push(operators.pop());
         }
         if (
-          operators.length === 0 ||
+          !operators.length ||
           operators[operators.length - 1].value !== '('
         ) {
           throw new Error('Mismatched parentheses');
         }
         operators.pop(); // Remove '('
-        // If function on top of stack, pop it
+        // If function on top, pop it
         if (
           operators.length &&
           operators[operators.length - 1].type === 'func'
@@ -119,10 +111,8 @@ function toRPN(tokens) {
   return output;
 }
 
-// Evaluate RPN expression
 function evaluateRPN(rpn) {
   const stack = [];
-
   const functions = {
     sin: Math.sin,
     cos: Math.cos,
@@ -130,7 +120,6 @@ function evaluateRPN(rpn) {
     log: Math.log,
     sqrt: Math.sqrt,
     abs: Math.abs,
-    // Add more functions as desired
   };
 
   for (let token of rpn) {
