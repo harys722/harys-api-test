@@ -30,7 +30,7 @@ export default function handler(req, res) {
 
 // Recursive descent parser for arithmetic expressions
 function evaluateExpression(expr) {
-  // Remove all whitespace for processing, but validate operators later
+  // Remove all whitespace for processing
   const cleanedExpr = expr.replace(/\s+/g, '');
 
   if (!cleanedExpr) {
@@ -43,48 +43,80 @@ function evaluateExpression(expr) {
 
   function tokenize(str) {
     const tokens = [];
-    let numberBuffer = '';
     let i = 0;
 
     while (i < str.length) {
       const ch = str[i];
 
-      if (/\d|\./.test(ch)) {
-        numberBuffer += ch;
-      } else if (ch === '-' && (i === 0 || '+-*/('.includes(str[i - 1]))) {
-        // Handle unary minus
-        numberBuffer += ch;
-      } else {
-        if (numberBuffer) {
-          const num = parseFloat(numberBuffer);
-          if (isNaN(num)) {
-            throw new Error(`Invalid number format at position ${i - numberBuffer.length}`);
+      if (/\d/.test(ch)) {
+        // Parse number (including decimals)
+        let numberStr = '';
+        let hasDecimal = false;
+        
+        while (i < str.length && (/\d/.test(str[i]) || (str[i] === '.' && !hasDecimal))) {
+          if (str[i] === '.') {
+            hasDecimal = true;
           }
-          tokens.push({ type: 'number', value: num });
-          numberBuffer = '';
+          numberStr += str[i];
+          i++;
         }
-
-        if ('+-*/()'.includes(ch)) {
-          tokens.push({ type: 'operator', value: ch });
-        } else {
-          throw new Error(`Invalid character at position ${i}: ${ch}`);
+        
+        // Don't increment i at the end of the while loop since we already did it
+        i--;
+        
+        const num = parseFloat(numberStr);
+        if (isNaN(num) || numberStr.endsWith('.')) {
+          throw new Error(`Invalid number format: ${numberStr}`);
         }
+        tokens.push({ type: 'number', value: num });
+      } else if (ch === '-' && (i === 0 || '+-*/('.includes(str[i - 1]))) {
+        // Handle unary minus - parse the negative number
+        let numberStr = '-';
+        let hasDecimal = false;
+        i++; // Move past the minus sign
+        
+        if (i >= str.length || !/\d/.test(str[i])) {
+          throw new Error('Invalid unary minus: no number follows');
+        }
+        
+        while (i < str.length && (/\d/.test(str[i]) || (str[i] === '.' && !hasDecimal))) {
+          if (str[i] === '.') {
+            hasDecimal = true;
+          }
+          numberStr += str[i];
+          i++;
+        }
+        
+        i--; // Back up one since the outer loop will increment
+        
+        const num = parseFloat(numberStr);
+        if (isNaN(num) || numberStr.endsWith('.')) {
+          throw new Error(`Invalid number format: ${numberStr}`);
+        }
+        tokens.push({ type: 'number', value: num });
+      } else if ('+-*/()'.includes(ch)) {
+        tokens.push({ type: 'operator', value: ch });
+      } else {
+        throw new Error(`Invalid character at position ${i}: ${ch}`);
       }
       i++;
     }
 
-    if (numberBuffer) {
-      const num = parseFloat(numberBuffer);
-      if (isNaN(num)) {
-        throw new Error(`Invalid number format at end of expression`);
-      }
-      tokens.push({ type: 'number', value: num });
-    }
-
-    // Validate that numbers are separated by operators
-    for (let j = 1; j < tokens.length; j++) {
-      if (tokens[j].type === 'number' && tokens[j - 1].type === 'number') {
+    // Validate token sequence
+    for (let j = 0; j < tokens.length; j++) {
+      const current = tokens[j];
+      const next = tokens[j + 1];
+      
+      // Check for consecutive numbers without operators
+      if (current.type === 'number' && next && next.type === 'number') {
         throw new Error('Missing operator between numbers');
+      }
+      
+      // Check for consecutive operators (except opening parenthesis followed by operator)
+      if (current.type === 'operator' && next && next.type === 'operator') {
+        if (!(current.value === '(' || next.value === ')')) {
+          throw new Error(`Invalid operator sequence: ${current.value}${next.value}`);
+        }
       }
     }
 
@@ -162,7 +194,9 @@ function evaluateExpression(expr) {
       const leftVal = evaluateNode(node.left, depth + 1);
       const rightVal = evaluateNode(node.right, depth + 1);
 
-      if (typeof leftVal !== 'number' || typeof rightVal !== 'number') {
+      // Ensure we're working with numbers
+      if (typeof leftVal !== 'number' || typeof rightVal !== 'number' || 
+          isNaN(leftVal) || isNaN(rightVal)) {
         throw new Error('Invalid operand types');
       }
 
@@ -178,6 +212,8 @@ function evaluateExpression(expr) {
         default:
           throw new Error(`Unknown operator: ${node.operator}`);
       }
+    } else {
+      throw new Error(`Unknown node type: ${node.type}`);
     }
   }
 
