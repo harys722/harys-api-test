@@ -30,66 +30,55 @@ const isPalindrome = (num) => {
 
 const analyzeNumber = (num) => {
   if (typeof num !== 'number' || !Number.isFinite(num)) {
-    return { error: "Invalid input. Please provide a valid number." };
+    return { error: "Invalid input: Please provide a valid number." }; // Crucial error handling
   }
-  const formatted1 = num.toLocaleString('en-US');
-  const formatted2 = num.toLocaleString('en-GB');
-  const abbreviated = num.toLocaleString('en-US', { notation: 'compact' });
-  const isEven = num % 2 === 0;
-  const isOdd = !isEven;
-  const result = {
-    formatted1,
-    formatted2,
-    abbreviated,
-    integer: num,
-    isEven,
-    isOdd,
+
+  const results = {
+    originalNumber: num,
     isPrime: isPrime(num),
-    isFibonacci: isFibonacci(num),
     isPerfectSquare: isPerfectSquare(num),
     isArmstrong: isArmstrong(num),
     isPalindrome: isPalindrome(num),
-    isDivisibleBy3: num % 3 === 0,
-    numberType: "integer",
-    isGreaterThanZero: num > 0,
-    isNegative: num < 0,
-    absoluteValue: Math.abs(num)
   };
 
-   if (isNaN(result.isFibonacci)) {
-    result.isFibonacci = false;
+  return results;
+};
+
+
+// Example usage (assuming you have a way to get the URL parameter)
+function handleRequest(req) {
+  let num;
+
+  try {
+    // Attempt to get the number from the URL parameters (replace with your actual URL parameter extraction)
+    const urlParams = new URLSearchParams(req); // or similar way to get url parameters
+    num = parseInt(urlParams.get('number'), 10);
+
+    if (isNaN(num)) {
+      // If no number is provided, generate a random one
+      num = Math.floor(Math.random() * 100) + 1; // Generates a random number between 1 and 100
+    }
+    
+  } catch (error) {
+      return { error: "Invalid URL parameters or unexpected error: " + error.message };
   }
 
-  return result;
-};
-
-
-
-function handleRequest(urlParams) {
-    let num;
-    if (urlParams && urlParams.number) {
-      num = parseInt(urlParams.number);
-    } else {
-      num = Math.floor(Math.random() * 100000); // Generate random number
+  try {
+    const analysis = analyzeNumber(num);
+    if(analysis.error){
+        return analysis;
     }
-
-    const analysisResult = analyzeNumber(num);
-
-    if (analysisResult.error) {
-      return analysisResult;
-    } else {
-      return analysisResult;
-    }
+    return analysis;
+  } catch (error) {
+    return { error: "An error occurred during analysis: " + error.message };
+  }
 }
 
-
-const urlParams = {
-  number: '300000'
+// Example usage (replace with your actual request handling)
+const requestData = {
+  url: "?number=121", // Example URL with parameter
 };
 
-const result = handleRequest(urlParams);
-console.log(JSON.stringify(result, null, 2)); 
+const response = handleRequest(requestData);
 
-// Example with random number:
-const randomResult = handleRequest({});
-console.log(JSON.stringify(randomResult, null, 2)); 
+console.log(JSON.stringify(response, null, 2));
