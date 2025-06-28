@@ -12,7 +12,7 @@ export default function handler(req, res) {
   }
 
   try {
-    const result = safeEval(equation);
+    const result = evaluateExpression(equation);
     if (typeof result !== 'number' || isNaN(result)) {
       throw new Error('Result is not a number');
     }
@@ -22,31 +22,104 @@ export default function handler(req, res) {
   }
 }
 
-function safeEval(expr) {
+// Recursive descent parser and evaluator for arithmetic expressions with parentheses
+function evaluateExpression(expr) {
   // Remove whitespace
   expr = expr.replace(/\s+/g, '');
+  
+  // Tokenize the expression
+  const tokens = tokenize(expr);
+  let current = 0;
 
-  // Validate allowed characters
-  if (!/^[0-9+\-*/().]+$/.test(expr)) {
-    throw new Error('Invalid characters in expression');
+  function tokenize(str) {
+    const tokens = [];
+    let numberBuffer = '';
+
+    for (let char of str) {
+      if (/\d/.test(char)) {
+        numberBuffer += char;
+      } else {
+        if (numberBuffer) {
+          tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
+          numberBuffer = '';
+        }
+        if ('+-*/()'.includes(char)) {
+          tokens.push({ type: 'operator', value: char });
+        } else {
+          throw new Error('Invalid character');
+        }
+      }
+    }
+    if (numberBuffer) {
+      tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
+    }
+    return tokens;
   }
 
-  // Check for balanced parentheses
-  let stack = [];
-  for (let char of expr) {
-    if (char === '(') {
-      stack.push(char);
-    } else if (char === ')') {
-      if (stack.length === 0) {
-        throw new Error('Unbalanced parentheses');
-      }
-      stack.pop();
+  function peek() {
+    return tokens[current] || null;
+  }
+
+  function consume(type, value = null) {
+    const token = tokens[current];
+    if (!token || token.type !== type || (value !== null && token.value !== value)) {
+      throw new Error('Unexpected token');
+    }
+    current++;
+    return token;
+  }
+
+  function parseExpression() {
+    let node = parseTerm();
+    while (peek() && peek().type === 'operator' && (peek().value === '+' || peek().value === '-')) {
+      const op = consume('operator').value;
+      const right = parseTerm();
+      node = { type: 'binary', operator: op, left: node, right: right };
+    }
+    return node;
+  }
+
+  function parseTerm() {
+    let node = parseFactor();
+    while (peek() && peek().type === 'operator' && (peek().value === '*' || peek().value === '/')) {
+      const op = consume('operator').value;
+      const right = parseFactor();
+      node = { type: 'binary', operator: op, left: node, right: right };
+    }
+    return node;
+  }
+
+  function parseFactor() {
+    const token = peek();
+    if (token.type === 'operator' && token.value === '(') {
+      consume('operator', '(');
+      const node = parseExpression();
+      consume('operator', ')');
+      return node;
+    } else if (token.type === 'number') {
+      consume('number');
+      return { type: 'number', value: token.value };
+    } else {
+      throw new Error('Invalid syntax');
     }
   }
-  if (stack.length !== 0) {
-    throw new Error('Unbalanced parentheses');
+
+  function evaluateNode(node) {
+    if (node.type === 'number') {
+      return node.value;
+    } else if (node.type === 'binary') {
+      const leftVal = evaluateNode(node.left);
+      const rightVal = evaluateNode(node.right);
+      switch (node.operator) {
+        case '+': return leftVal + rightVal;
+        case '-': return leftVal - rightVal;
+        case '*': return leftVal * rightVal;
+        case '/': return leftVal / rightVal;
+        default: throw new Error('Unknown operator');
+      }
+    }
   }
 
-  // Evaluate safely
-  return Function(`'use strict'; return (${expr})`)();
+  const ast = parseExpression();
+  return evaluateNode(ast);
 }
