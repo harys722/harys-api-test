@@ -1,4 +1,4 @@
-// Utility functions
+// Utility functions (unchanged, included for completeness)
 const isPrime = (num) => {
   if (num < 2) return false;
   for (let i = 2; i <= Math.sqrt(num); i++) {
@@ -8,84 +8,119 @@ const isPrime = (num) => {
 };
 
 const isFibonacci = (num) => {
-  // A number is Fibonacci if one of (5*n^2 + 4) or (5*n^2 - 4) is a perfect square
   const test1 = 5 * num * num + 4;
   const test2 = 5 * num * num - 4;
-  return Number.isInteger(Math.sqrt(test1)) || Number.isInteger(Math.sqrt(test2));
+  return isPerfectSquare(test1) || isPerfectSquare(test2);
 };
 
-function getEndpoint(req) {
-  const numberParam = req.url.split('?')[1];
-  const queryParams = new URLSearchParams(numberParam || "");
+const isPerfectSquare = (num) => {
+  const sqrt = Math.sqrt(num);
+  return sqrt === Math.floor(sqrt);
+};
 
-  // Extract values, handling potential errors gracefully
-  const num = queryParams.get('number');
-  const min = parseInt(queryParams.get('min'));
-  const max = parseInt(queryParams.get('max'));
+const isArmstrong = (num) => {
+  const strNum = num.toString();
+  const numDigits = strNum.length;
+  let sum = 0;
+  for (let digit of strNum) {
+    sum += Math.pow(parseInt(digit), numDigits);
+  }
+  return sum === num;
+};
 
-  // If 'number' is provided, prioritize it.
-  if (num) {
-    const parsedNumber = parseInt(num);
-    if (isNaN(parsedNumber)) {
-      return { error: "Invalid number in URL parameter." };
-    }
-    return {
-      number: parsedNumber,
-      isPrime: isPrime(parsedNumber),
-      isFibonacci: isFibonacci(parsedNumber),
-    };
+const isPalindrome = (num) => {
+  const str = num.toString();
+  return str === str.split('').reverse().join('');
+};
+
+// Main handler
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.status(405).send("Method Not Allowed, this endpoint only uses 'GET' requests.");
+    return;
   }
 
-   // Generate random number based on min/max or default range
-  let randomNumber;
-  if (!isNaN(min) && !isNaN(max) && min < max) {
-    randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+  const query = req.query;
+  let number;
+
+  // Check if user provided a specific number
+  if (query.number !== undefined) {
+    // Parse the number
+    number = parseFloat(query.number);
+    if (isNaN(number)) {
+      res.status(400).send("Invalid 'number' parameter.");
+      return;
+    }
   } else {
-    randomNumber = Math.floor(Math.random() * 10000) + 1; // Default 1-10000
-  }
+    // No specific number provided, generate one
+    const minParam = query.min !== undefined ? parseFloat(query.min) : undefined;
+    const maxParam = query.max !== undefined ? parseFloat(query.max) : undefined;
 
-  return {
-    number: randomNumber,
-    isPrime: isPrime(randomNumber),
-    isFibonacci: isFibonacci(randomNumber),
-  };
-}
+    // Determine range
+    let minRange, maxRange;
 
-
-// Example usage (replace with your actual endpoint handling)
-const endpoint = (req) => {
-  try {
-    const result = getEndpoint(req);
-    if (result.error) {
-      return {
-        status: 400,
-        error: result.error,
-      };
+    if (minParam !== undefined && maxParam !== undefined) {
+      minRange = minParam;
+      maxRange = maxParam;
+    } else if (minParam !== undefined && maxParam === undefined) {
+      minRange = minParam;
+      maxRange = 10000; // default upper bound
+    } else if (minParam === undefined && maxParam !== undefined) {
+      minRange = 1; // default lower bound
+      maxRange = maxParam;
+    } else {
+      // Neither min nor max provided, default to 1-10,000
+      minRange = 1;
+      maxRange = 10000;
     }
-    return {
-      status: 200,
-      data: result,
-    };
-  } catch (error) {
-      return {
-          status: 500,
-          error: "Internal Server Error",
-      };
+
+    // Generate random number within range
+    number = Math.floor(Math.random() * (maxRange - minRange + 1)) + minRange;
   }
-};
 
+  // Proceed with analysis
+  const absoluteValue = Math.abs(number);
+  const isNegative = number < 0;
+  const isGreaterThanZero = number > 0;
+  const isEven = number % 2 === 0;
+  const isOdd = !isEven;
+  const isPrimeNum = isPrime(number);
+  const isFib = isFibonacci(number);
+  const isSquare = isPerfectSquare(number);
+  const isArm = isArmstrong(number);
+  const isPalin = isPalindrome(number);
+  const isDiv3 = number % 3 === 0;
 
+  // Formatting
+  const formatted1 = number.toLocaleString('en-US');
+  const formatted2 = number.toLocaleString('de-DE');
+  const abbrev = (() => {
+    if (Math.abs(number) >= 1_000_000_000) {
+      return (number / 1_000_000_000).toFixed(1) + 'B';
+    } else if (Math.abs(number) >= 1_000_000) {
+      return (number / 1_000_000).toFixed(1) + 'M';
+    } else if (Math.abs(number) >= 1_000) {
+      return (number / 1_000).toFixed(1) + 'K';
+    }
+    return number.toString();
+  })();
 
-
-// Example usage (replace with your actual endpoint handling)
-const request = new URL('https://harys-api-test.vercel.app/api/v1/number-analyzer?number=17&min=10&max=20');
-const result = endpoint({ url: request.toString() });
-console.log(JSON.stringify(result, null, 2));
-
-const request2 = new URL('https://harys-api-test.vercel.app/api/v1/number-analyzer?min=20&max=30');
-const result2 = endpoint({ url: request2.toString() });
-console.log(JSON.stringify(result2, null, 2));
-
-const request3 = new URL('https://harys-api-test.vercel.app/api/v1/number-analyzer?number=abc');
-const result3 = endpoint({ url: request3.toString() });
-console.log(JSON.stringify(result3, null, 2));
+  res.json({
+    number,
+    formatted1,
+    formatted2,
+    abbreviated: abbrev,
+    isEven,
+    isOdd,
+    isPrime: isPrimeNum,
+    isFibonacci: isFib,
+    isPerfectSquare: isSquare,
+    isArmstrong: isArm,
+    isPalindrome: isPalin,
+    isDivisibleBy3: isDiv3,
+    numberType: Number.isInteger(number) ? 'integer' : 'float',
+    isGreaterThanZero,
+    isNegative,
+    absoluteValue
+  });
+}
