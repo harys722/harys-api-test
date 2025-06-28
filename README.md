@@ -8,7 +8,7 @@ A free Open APIs service that provides a variety of endpoints you can make use o
 # 🔖 Introduction
 Our API provides a variety of endpoints that you can use in your applications. To get started with us, select an endpoint from our documentation and follow the instructions specific to that endpoint.
 
-### 📖 Documentaion
+### 📖 Documentation
 We are actively working to bring our amazing documentation to life. It will be excellent documentation and 
 hopefully you will never need any human help to use the API.
 
