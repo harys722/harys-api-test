@@ -111,7 +111,9 @@ export default async function handler(req, res) {
 
   // Additional properties
   const isDecimal = !Number.isInteger(number);
-  const modulo = number % 2; // 0 or 1 (or fractional if decimal)
+  const modulo2 = number % 3;
+  const modulo5 = number % 5;
+  const modulo7 = number % 7;
   const digitCount = Math.abs(number).toString().length;
   const isDivisibleBy5 = number % 5 === 0;
   const isDivisibleBy10 = number % 10 === 0;
@@ -140,6 +142,7 @@ export default async function handler(req, res) {
     isGreaterThanZero,
     isEven,
     isOdd,
+    isDecimal,
     isPrime: isPrimeNum,
     isFibonacci: isFibo,
     isPerfectSquare: isSquare,
@@ -148,8 +151,9 @@ export default async function handler(req, res) {
     isDivisibleBy3: isDiv3,
     isDivisibleBy5: isDivisibleBy5,
     isDivisibleBy10: isDivisibleBy10,
-    isDecimal,
-    modulo,
+    modulo3,
+    modulo5,
+    modulo7,
     digitCount,
     primeFactors: factors,
     formatted1,
