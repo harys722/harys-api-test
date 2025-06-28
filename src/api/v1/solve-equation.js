@@ -174,6 +174,9 @@ function evaluateExpression(expr) {
     }
   }
 
+  // Debug: Log tokens for verification
+  console.log('Tokens:', tokens);
+
   // Parse and evaluate
   const ast = parseExpression();
 
@@ -182,5 +185,8 @@ function evaluateExpression(expr) {
     throw new Error(`Unexpected token after expression: ${peek().value}`);
   }
 
-  return evaluateNode(ast);
+  const result = evaluateNode(ast);
+  console.log('AST:', ast, 'Result:', result);
+
+  return result;
 }
