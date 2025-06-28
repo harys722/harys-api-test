@@ -32,29 +32,29 @@ function evaluateExpression(expr) {
   let current = 0;
 
   function tokenize(str) {
-    const tokens = [];
-    let numberBuffer = '';
+  const tokens = [];
+  let numberBuffer = '';
 
-    for (let char of str) {
-      if (/\d/.test(char)) {
-        numberBuffer += char;
+  for (let char of str) {
+    if (/\d/.test(char) || char === '.') {
+      numberBuffer += char;
+    } else {
+      if (numberBuffer) {
+        tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
+        numberBuffer = '';
+      }
+      if ('+-*/()'.includes(char)) {
+        tokens.push({ type: 'operator', value: char });
       } else {
-        if (numberBuffer) {
-          tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
-          numberBuffer = '';
-        }
-        if ('+-*/()'.includes(char)) {
-          tokens.push({ type: 'operator', value: char });
-        } else {
-          throw new Error('Invalid character');
-        }
+        throw new Error('Invalid character');
       }
     }
-    if (numberBuffer) {
-      tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
-    }
-    return tokens;
   }
+  if (numberBuffer) {
+    tokens.push({ type: 'number', value: parseFloat(numberBuffer) });
+  }
+  return tokens;
+}
 
   function peek() {
     return tokens[current] || null;
@@ -105,20 +105,26 @@ function evaluateExpression(expr) {
   }
 
   function evaluateNode(node) {
-    if (node.type === 'number') {
-      return node.value;
-    } else if (node.type === 'binary') {
-      const leftVal = evaluateNode(node.left);
-      const rightVal = evaluateNode(node.right);
-      switch (node.operator) {
-        case '+': return leftVal + rightVal;
-        case '-': return leftVal - rightVal;
-        case '*': return leftVal * rightVal;
-        case '/': return leftVal / rightVal;
-        default: throw new Error('Unknown operator');
-      }
+  if (node.type === 'number') {
+    return node.value; // node.value should already be a number (float)
+  } else if (node.type === 'binary') {
+    const leftVal = evaluateNode(node.left);
+    const rightVal = evaluateNode(node.right);
+    switch (node.operator) {
+      case '+': return leftVal + rightVal;
+      case '-': return leftVal - rightVal;
+      case '*': return leftVal * rightVal;
+      case '/': 
+        if (rightVal === 0) {
+          throw new Error('Division by zero');
+        }
+        return leftVal / rightVal;
+      default: throw new Error('Unknown operator');
     }
+  } else {
+    throw new Error('Invalid node type');
   }
+}
 
   const ast = parseExpression();
   return evaluateNode(ast);
