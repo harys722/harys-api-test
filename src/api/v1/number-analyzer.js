@@ -1,6 +1,6 @@
-// Utility functions (unchanged, included for completeness)
+// Utility functions
 const isPrime = (num) => {
-  if (num < 2) return false;
+  if (!Number.isInteger(num) || num < 2) return false;
   for (let i = 2; i <= Math.sqrt(num); i++) {
     if (num % i === 0) return false;
   }
@@ -14,23 +14,45 @@ const isFibonacci = (num) => {
 };
 
 const isPerfectSquare = (num) => {
+  if (num < 0) return false;
   const sqrt = Math.sqrt(num);
   return sqrt === Math.floor(sqrt);
 };
 
 const isArmstrong = (num) => {
-  const strNum = num.toString();
+  const strNum = Math.abs(num).toString();
   const numDigits = strNum.length;
   let sum = 0;
   for (let digit of strNum) {
     sum += Math.pow(parseInt(digit), numDigits);
   }
-  return sum === num;
+  return sum === Math.abs(num);
 };
 
 const isPalindrome = (num) => {
-  const str = num.toString();
+  const str = Math.abs(num).toString();
   return str === str.split('').reverse().join('');
+};
+
+const primeFactors = (num) => {
+  const factors = [];
+  let n = Math.abs(num);
+  if (n < 2) return factors;
+
+  while (n % 2 === 0) {
+    factors.push(2);
+    n /= 2;
+  }
+  for (let i = 3; i <= Math.sqrt(n); i += 2) {
+    while (n % i === 0) {
+      factors.push(i);
+      n /= i;
+    }
+  }
+  if (n > 2) {
+    factors.push(n);
+  }
+  return factors;
 };
 
 // Main handler
@@ -45,18 +67,16 @@ export default async function handler(req, res) {
 
   // Check if user provided a specific number
   if (query.number !== undefined) {
-    // Parse the number
     number = parseFloat(query.number);
     if (isNaN(number)) {
       res.status(400).send("Invalid 'number' parameter.");
       return;
     }
   } else {
-    // No specific number provided, generate one
+    // Generate random number within range
     const minParam = query.min !== undefined ? parseFloat(query.min) : undefined;
     const maxParam = query.max !== undefined ? parseFloat(query.max) : undefined;
 
-    // Determine range
     let minRange, maxRange;
 
     if (minParam !== undefined && maxParam !== undefined) {
@@ -64,32 +84,37 @@ export default async function handler(req, res) {
       maxRange = maxParam;
     } else if (minParam !== undefined && maxParam === undefined) {
       minRange = minParam;
-      maxRange = 10000; // default upper bound
+      maxRange = 10000;
     } else if (minParam === undefined && maxParam !== undefined) {
-      minRange = 1; // default lower bound
+      minRange = 1;
       maxRange = maxParam;
     } else {
-      // Neither min nor max provided, default to 1-10,000
       minRange = 1;
       maxRange = 10000;
     }
 
-    // Generate random number within range
     number = Math.floor(Math.random() * (maxRange - minRange + 1)) + minRange;
   }
 
-  // Proceed with analysis
+  // Basic properties
   const absoluteValue = Math.abs(number);
   const isNegative = number < 0;
   const isGreaterThanZero = number > 0;
   const isEven = number % 2 === 0;
   const isOdd = !isEven;
   const isPrimeNum = isPrime(number);
-  const isFib = isFibonacci(number);
+  const isFibo = isFibonacci(number);
   const isSquare = isPerfectSquare(number);
   const isArm = isArmstrong(number);
   const isPalin = isPalindrome(number);
   const isDiv3 = number % 3 === 0;
+
+  // Additional properties
+  const isDecimal = !Number.isInteger(number);
+  const modulo = number % 2; // 0 or 1 (or fractional if decimal)
+  const digitCount = Math.abs(number).toString().length;
+  const isDivisibleBy5 = number % 5 === 0;
+  const isDivisibleBy10 = number % 10 === 0;
 
   // Formatting
   const formatted1 = number.toLocaleString('en-US');
@@ -105,22 +130,31 @@ export default async function handler(req, res) {
     return number.toString();
   })();
 
+  // Prime factors
+  const factors = primeFactors(number);
+
   res.json({
     number,
-    formatted1,
-    formatted2,
-    abbreviated: abbrev,
+    absoluteValue,
+    isNegative,
+    isGreaterThanZero,
     isEven,
     isOdd,
     isPrime: isPrimeNum,
-    isFibonacci: isFib,
+    isFibonacci: isFibo,
     isPerfectSquare: isSquare,
     isArmstrong: isArm,
     isPalindrome: isPalin,
     isDivisibleBy3: isDiv3,
-    numberType: Number.isInteger(number) ? 'integer' : 'float',
-    isGreaterThanZero,
-    isNegative,
-    absoluteValue
+    isDivisibleBy5: isDivisibleBy5,
+    isDivisibleBy10: isDivisibleBy10,
+    isDecimal,
+    modulo,
+    digitCount,
+    primeFactors: factors,
+    formatted1,
+    formatted2,
+    abbreviated: abbrev,
+    numberType: Number.isInteger(number) ? 'integer' : 'float'
   });
 }
