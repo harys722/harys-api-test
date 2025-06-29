@@ -1,6 +1,12 @@
 import questions from '../../data/questions';
 
-export default function handler(req, res) {
+import { checkApiKey } from '../../data/auth';
+
+export default function handler(request, response) {
+  if (!checkApiKey(request, response)) {
+    return;
+  }
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
