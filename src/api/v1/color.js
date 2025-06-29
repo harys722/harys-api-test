@@ -27,7 +27,13 @@ function getColorInfo(hex) {
   };
 }
 
+import { checkApiKey } from '../../data/auth';
+
 export default function handler(req, res) {
+  if (!checkApiKey(req, res)) {
+    return; // Stop processing if not authorized
+  }
+
   const { hex } = req.query;
 
   let colorInfo;
