@@ -1,28 +1,32 @@
 import questions from '../../data/questions';
-
 import { checkApiKey } from '../../data/auth';
 
 export default function handler(request, response) {
+  // Check API key first
   if (!checkApiKey(request, response)) {
     return;
   }
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // CORS headers
+  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Methods', 'GET');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
+  // Handle OPTIONS preflight
+  if (request.method === 'OPTIONS') {
+    response.status(200).end();
     return;
   }
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ 
+  // Only allow GET
+  if (request.method !== 'GET') {
+    return response.status(405).json({ 
       error: 'Method not allowed',
       message: 'This endpoint only accepts GET requests'
     });
   }
 
+  // Main logic
   try {
     console.log('Questions:', questions);
     if (!Array.isArray(questions)) {
@@ -31,7 +35,7 @@ export default function handler(request, response) {
     const randomIndex = Math.floor(Math.random() * questions.length);
     const randomQuestion = questions[randomIndex];
 
-    res.status(200).json({
+    response.status(200).json({
       question: randomQuestion,
       id: randomIndex + 1,
       total_questions: questions.length,
@@ -42,7 +46,7 @@ export default function handler(request, response) {
     });
   } catch (error) {
     console.error('Error generating question:', error);
-    res.status(500).json({ 
+    response.status(500).json({ 
       error: 'Internal server error',
       message: error.message || 'Failed to generate random question'
     });
