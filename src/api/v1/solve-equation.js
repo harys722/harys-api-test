@@ -23,9 +23,13 @@ function evaluateExpression(expression) {
     }
 }
 
-// Vercel serverless function handler
+import { checkApiKey } from '../../data/auth';
+
 export default function handler(req, res) {
-    // Set CORS headers
+  if (!checkApiKey(req, res)) {
+    return; // Stop processing if not authorized
+  }
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
     res.setHeader('Content-Type', 'application/json');
