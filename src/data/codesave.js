@@ -480,7 +480,7 @@ const emojis = [
         description: "Germany.",
         color: "Black, Red, Gold",
         mood: "National pride"
-    },
+    }
 ];
 
 export default emojis;
@@ -749,7 +749,7 @@ const questions = [
     "What smell makes you feel most at home?",
     "If you could live anywhere for a year, where would you go?",
     "What's your favorite thing about your neighborhood?",
-    "How has your idea of the perfect home changed over time?",
+    "How has your idea of the perfect home changed over time?"
 ];
 
 export default questions;
