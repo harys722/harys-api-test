@@ -1,5 +1,5 @@
 // Import the authorization check function
-import { checkApiKey } = require('../../data/auth');
+const { checkApiKey } = require('../../data/auth');
 
 module.exports = async (req, res) => {
   // Check authorization
