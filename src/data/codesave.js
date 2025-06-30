@@ -750,4 +750,4 @@ const questions = [
   "How has your idea of the perfect home changed over time?",
 ];
 
-export { emojis, questions };
+export default { emojis, questions };
