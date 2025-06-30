@@ -1,0 +1,54 @@
+input: ./docs
+output: .retype
+url: https://harys722.github.io/harys-api-test
+branding:
+  title: Open APIs Docs
+  logo: media/cover.png
+  logoAlign: left
+  colors:
+    label:
+      text: "#ffffff"
+      background: "#FFD700"
+links:
+  - text: Home
+    link: index.md
+    icon: home
+  - text: Website
+    link: https://harys.is-a.dev
+    icon: globe
+edit:
+  repo: "https://github.com/harys722/readme-test"
+  base: "/src"
+  branch: "main"
+  label: "Edit this page"
+editor:
+  enabled: true
+favicon: https://harys.is-a.dev/images/harys722.png
+generator:
+  recase: all
+markdown:
+  lineBreaks: soft
+meta:
+  title: " | Open APIs Docs"
+search:
+  hotkeys:
+    - "/"
+  maxResults: 20
+  minChars: 2
+  mode: full
+  noResultsFoundMsg: "No results"
+  placeholder: Search
+start:
+  open: false
+snippets:
+  lineNumbers:
+    - js
+    - none
+templating:
+  enabled: true
+  liquid: false
+footer:
+  copyright: "&copy; 2025 harys.is-a.dev - All Rights Reserved."
+  links:
+    - text: harys722
+      link: https://harys.is-a-dev
