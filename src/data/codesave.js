@@ -1,6 +1,6 @@
 // Emojis list with info for the emoji endpoint
 const emojis = [
-  	{
+    {
         emoji: "😀",
         name: "Grinning Face",
         category: "Smileys & Emotion",
