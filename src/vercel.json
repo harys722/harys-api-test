@@ -7,6 +7,6 @@
   ],
 
   "redirects": [
-    { "source": "/data/:path*", "missing": [{ "type": "header", "key": "referer" }], "destination": "/api/v1/[...slug].js" }
+    { "source": "/data/:path*", "missing": [{ "type": "header", "key": "referer" }], "destination": "/" }
   ]
 }
