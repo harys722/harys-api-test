@@ -1,4 +1,5 @@
-import emojis from '../../data/emojis';
+import data from '../../data/codesave';
+const { emojis } = data;
 
 export default function handler(req, res) {
   const { emoji } = req.query;
