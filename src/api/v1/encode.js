@@ -1,4 +1,11 @@
+const { checkApiKey } = require('../../data/auth');
+
 export default async function handler(req, res) {
+  // Authorization check
+  if (!checkApiKey(req, res)) {
+    return; // Stop processing if not authorized
+  }
+
   if (req.method !== 'POST') {
     res.status(405).send("Method Not Allowed, this endpoint uses only 'POST' requests.");
     return;
@@ -24,8 +31,8 @@ export default async function handler(req, res) {
         encoded: encodedContent
       },
       info: {
-        credits: "Made by harys722, available only for cool people.",
-        website: "https://harys.is-a.dev"
+        credits: "Made by harys722, available only for everyone.",
+        support: "https://harys.is-a.dev/api"
       }
     });
   } catch (error) {
