@@ -56,7 +56,13 @@ const primeFactors = (num) => {
 };
 
 // Main handler
-export default async function handler(req, res) {
+import { checkApiKey } from '../../data/auth';
+
+export default function handler(req, res) {
+  if (!checkApiKey(req, res)) {
+    return; // Stop processing if not authorized
+  }
+  
   if (req.method !== 'GET') {
     res.status(405).send("Method Not Allowed, this endpoint only uses 'GET' requests.");
     return;
@@ -159,6 +165,10 @@ export default async function handler(req, res) {
     formatted1,
     formatted2,
     abbreviated: abbrev,
-    numberType: Number.isInteger(number) ? 'integer' : 'float'
+    numberType: Number.isInteger(number) ? 'integer' : 'float',
+    info: {
+      credits: "Made by harys722, available only everyone.",
+      support: "https://harys.is-a.dev/api"
+    }
   });
 }
