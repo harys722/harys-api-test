@@ -1,15 +1,11 @@
-// Safe math evaluation function
 function evaluateExpression(expression) {
     try {
-        // Remove whitespace and validate characters
         const cleanExpression = expression.replace(/\s/g, '');
         
-        // Only allow numbers, basic operators, parentheses, and decimal points
         if (!/^[0-9+\-*/().]+$/.test(cleanExpression)) {
             throw new Error('Invalid characters in expression');
         }
         
-        // Prevent potential security issues by using Function constructor
         const result = Function('"use strict"; return (' + cleanExpression + ')')();
         
         // Check if result is a valid number
@@ -36,18 +32,15 @@ export default function handler(req, res) {
     
     // Handle only GET requests
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ error: "Method Not Allowed, this endpoint uses only 'GET' requests." });
     }
     
-    // Get equation from query parameters and decode URL encoding
     let { equation } = req.query;
     
-    // Fix URL encoding issue where + becomes space
     if (equation) {
         equation = equation.replace(/\s+/g, '+');
     }
     
-    // Check if equation parameter exists
     if (!equation) {
         return res.status(400).json({ 
             error: 'Missing equation parameter',
@@ -63,7 +56,11 @@ export default function handler(req, res) {
         return res.status(200).json({
             equation: equation,
             result: result,
-            success: true
+            success: true,
+            info: {
+                credits: "Made by harys722, available only everyone.",
+                support: "https://harys.is-a.dev/api"
+            }
         });
         
     } catch (error) {
