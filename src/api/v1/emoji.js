@@ -1,7 +1,30 @@
+const { checkApiKey } = require('../../data/auth');
 import data from '../../data/codesave';
+
 const { emojis } = data;
 
 export default function handler(req, res) {
+  // Authorization check
+  if (!checkApiKey(req, res)) {
+    return; // Stop processing if not authorized
+  }
+
+  let { count } = req.query;
+  let emojiCount = 1; // Default count
+
+  if (count !== undefined) {
+    const parsedCount = parseInt(count, 10);
+    if (!isNaN(parsedCount)) {
+      if (parsedCount < 1) {
+        emojiCount = 1;
+      } else if (parsedCount > 5) {
+        emojiCount = 5;
+      } else {
+        emojiCount = parsedCount;
+      }
+    }
+  }
+
   const { emoji } = req.query;
 
   if (emoji) {
@@ -18,14 +41,14 @@ export default function handler(req, res) {
       }
     });
   } else {
-    // No param: pick a random emoji from the list
-    const randomIndex = Math.floor(Math.random() * emojis.length);
-    const randomEmoji = emojis[randomIndex];
+    // No param: pick 'count' number of random emojis from the list
+    const shuffledEmojis = [...emojis].sort(() => 0.5 - Math.random());
+    const selectedEmojis = shuffledEmojis.slice(0, emojiCount);
     return res.json({
-      ...randomEmoji,
+      emojis: selectedEmojis,
       info: {
-        credits: "Made by harys722, available only for cool people.",
-        website: "https://harys.is-a.dev"
+        credits: "Made by harys722, available for cool everyone.",
+        support: "https://harys.is-a.dev/api"
       }
     });
   }
