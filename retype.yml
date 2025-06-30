@@ -1,4 +1,4 @@
-input: ./docs
+input: ../src/docs
 output: .retype
 url: https://harys722.github.io/harys-api-test
 branding:
