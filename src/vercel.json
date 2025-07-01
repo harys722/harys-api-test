@@ -2,27 +2,10 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/", "destination": "/api/v1/[...slug].js" },
-    {
-      "source": "/v1/:path*",
-      "destination": "/api/v1/:path*",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/api/v1/[...slug].js",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" }
-      ]
-    }
+    { "source": "/v1/:path*", "destination": "/api/v1/:path*" },
+    { "source": "/(.*)", "destination": "/api/v1/[...slug].js" }
   ],
+
   "redirects": [
     { "source": "/data/:path*", "missing": [{ "type": "header", "key": "referer" }], "destination": "/" }
   ]
