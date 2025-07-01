@@ -1,25 +1,22 @@
-const express = require('express');
-const cors = require('cors');
-const app = express();
+export default function handler(req, res) {
+  const { handler } = req.query; // array of path segments
 
-// Enable CORS
-app.use(
-  cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  })
-);
+  // define valid API routes
+  const validRoutes = ['ALL', 'API'];
 
-app.options('*', cors());
-
-app.get('/api/v1', (req, res) => {
-  res.json({ message: 'API is working' });
-});
-
-app.get('/corsdemo', (req, res) => {
-  res.json({ message: 'This is the /corsdemo endpoint. Ensure CORS headers are set.' });
-});
-
-module.exports = app;
+  if (handler && validRoutes.includes(handler[0])) {
+    // process valid route
+    res.json({ message: `Processing ${handler[0]}` });
+  } else {
+    // return error for invalid route
+    res.status(400).json({
+      success: "false",
+      error: "The requested resource does not exist",
+      message: "Make sure you are sending a request to a valid endpoint or web-page",
+      info: {
+        credits: "Made by harys722, available only for cool people.",
+        support: "https://harys.is-a.dev/api"
+      }
+    });
+  }
+}
