@@ -1,9 +1,12 @@
 {
-  "name": "my-api",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "next12",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "start": "node index.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.29",
