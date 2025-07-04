@@ -1,4 +1,12 @@
+import { corsMiddleware, withCors } from '../../data/cors.js';
+import { checkApiKey } from '../../data/auth';
+
 export default async function handler(req, res) {
+  if (corsMiddleware(req, res)) return;
+  if (!checkApiKey(req, res)) {
+    return; 
+  }
+
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
@@ -11,7 +19,6 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Validate if the input is a valid base64 string
   const base64Regex = /^[a-zA-Z0-9+/=]*={0,2}$/;
   if (!base64Regex.test(string)) {
     res.status(400).send('Invalid base64 string');
@@ -26,8 +33,8 @@ export default async function handler(req, res) {
         decoded: decodedContent
       },
       info: {
-        credits: "Made by harys722, available only for cool people.",
-        website: "https://harys.is-a.dev"
+        credits: "Made by harys722, available for everyone.",
+        support: "https://harys.is-a.dev/api"
       }
     });
   } catch (error) {
