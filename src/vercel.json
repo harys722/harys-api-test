@@ -2,8 +2,8 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/", "destination": "/api/v1/[...slug].js" },
-    { "source": "/v1/:path*", "destination": "/api/v1/:path*" },
     { "source": "/v1/base64/encode", "destination": "/api/v1/encode.js" },
+    { "source": "/v1/:path*", "destination": "/api/v1/:path*" },
     { "source": "/(.*)", "destination": "/api/v1/[...slug].js" }
   ],
   "redirects": [
